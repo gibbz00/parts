@@ -1,4 +1,4 @@
-# Flake Parts - Commonly Reused Project Setups
+# Parts - Commonly Reused Project Setups
 
 ## Modules
 
@@ -7,6 +7,31 @@
 Pulls in the [git-hooks](https://flake.parts/options/git-hooks-nix.html) flake part for setting up common [pre-commit](https://pre-commit.com/) hooks when entering its exported devShell.
 
 pre-commit checks will also be made part of the flake checks.
+
+#### `rust`
+
+Pulls in [crane](https://crane.dev) as the nix bridge for integrating with cargo.
+
+Adding the exported devShell provides access to a nightly toolchain containing the default rustup [profile](https://rust-lang.github.io/rustup/concepts/profiles.html), i.e. `rustc`, `rust-std`, `cargo`, `clippy`, `rust-fmt`, and `rust-docs`.
+
+Expects a `craneLibSrcPath` to in turn set up flake checks such as rust-fmt and clippy.
+
+Exports a [craneLib](https://crane.dev/API.html#cranelib) instance which can be used to run functions such as:
+
+```nix
+perSystem = { config, ... }: {
+  # Provide the Cargo.toml directory path to rust module
+  # Used in turn by rustfmt etc.
+  craneLibSrcPath = ./.;
+
+  # Runnable package derivation using `nix run .`
+  packages.default = config.craneLib.buildPackage ({
+    strictDeps = true;
+    doCheck = false;
+    src = config.craneLibSrcPath;
+  });
+};
+```
 
 ## Example Usage
 
@@ -21,8 +46,8 @@ Then, in another project's `flake.nix`:
     flake-parts.url = "github:hercules-ci/flake-parts";
     nixpkgs.url = "github:nixos/nixpkgs?ref=nixos-unstable";
     # 1): Use this repo as a flake input.
-    rust-flake-parts = {
-      url = "github:gibbz00/rusty-nix";
+    parts = {
+      url = "github:gibbz00/parts";
       inputs.nixpkgs.follows = "nixpkgs";
       inputs.flake-parts.follows = "flake-parts";
     };
@@ -35,7 +60,7 @@ Then, in another project's `flake.nix`:
 
       imports = [
         # 2) Import any module exported in this project's flake.nix
-        inputs.rust-flake-parts.flakeModule.pre-commit
+        inputs.parts.flakeModule.pre-commit
       ];
 
       perSystem =
